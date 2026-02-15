@@ -7,38 +7,45 @@ import SubjectDashboard from "../screens/SubjectDashboard";
 import { reducer } from "../state/subjectReducer";
 import { useWatcherSocket } from "../hooks/useWatcherSocket";
 
-
+type Subject = {
+  subjectId: string;
+  sex: string;
+  ethnicity: string;
+  fitzpatrickTone: string;
+  notes: string;
+  basePathRel: string;
+  subjectFolderAbs: string;
+  timelineFolderAbs: string;
+  timelineFolderRel: string;
+};
 
 const initialState = {
   subjects: {},
 };
 
 export default function App() {
-  // 🔹 Existing subject creation flow (unchanged)
-  const [subject, setSubject] = useState<any>(null);
+  // Step 1: create subject
+  const [subject, setSubject] = useState<Subject | null>(null);
 
-  // 🔹 NEW: global observable state for watcher-driven UI
+  // NEW: global observable state for watcher-driven UI
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // 🔹 NEW: connect Python watcher → reducer
+  // NEW: connect Python watcher → reducer
   useWatcherSocket(dispatch);
 
-  // Step 1: create subject (unchanged)
   if (!subject) {
     return <SubjectCreate onCreated={setSubject} />;
   }
 
-  // Step 2: anchor ingestion screen (unchanged)
-  // Step 3+: live dashboard runs in parallel and observes filesystem
   return (
     <>
       <AnchorCanvas
         subjectId={subject.subjectId}
         sex={subject.sex}
         ethnicity={subject.ethnicity}
+        timelineFolderAbs={subject.timelineFolderAbs}
       />
 
-      {/* 🔹 NEW: Live preview + progress + confirmations */}
       <SubjectDashboard state={state} />
     </>
   );

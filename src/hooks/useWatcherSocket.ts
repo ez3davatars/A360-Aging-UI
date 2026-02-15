@@ -1,20 +1,24 @@
 import { useEffect } from "react";
 import { WatcherEvent } from "../shared/watcherEvents";
 
-const WS_URL = "ws://127.0.0.1:8765";
+function resolveWsUrl() {
+  const cfg = window.configAPI?.getConfig?.();
+  const host = cfg?.wsHost ?? "127.0.0.1";
+  const port = cfg?.wsPort ?? 8765;
+  return `ws://${host}:${port}`;
+}
 
-export function useWatcherSocket(
-  dispatch: React.Dispatch<WatcherEvent>
-) {
+export function useWatcherSocket(dispatch: React.Dispatch<WatcherEvent>) {
   useEffect(() => {
     let socket: WebSocket | null = null;
     let retryTimeout: number | null = null;
 
     const connect = () => {
+      const WS_URL = resolveWsUrl();
       socket = new WebSocket(WS_URL);
 
       socket.onopen = () => {
-        console.log("[Watcher] connected");
+        console.log("[Watcher] connected", WS_URL);
       };
 
       socket.onmessage = (msg) => {

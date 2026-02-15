@@ -1,143 +1,155 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AnchorPromptBuilder from "../components/AnchorPromptBuilder";
 
 type Props = {
   subjectId: string;
   sex: string;
   ethnicity: string;
+  timelineFolderAbs: string; // .../Aging/<Sex>/<Group>/subject###/TimelineA
 };
+
+function joinPath(a: string, b: string) {
+  return a.replace(/[\\/]+$/, "") + "/" + b;
+}
 
 export default function AnchorCanvas({
   subjectId,
   sex,
   ethnicity,
+  timelineFolderAbs,
 }: Props) {
-  const [selectedAnchorVersion, setSelectedAnchorVersion] =
-    useState<number | null>(null);
-  const [currentAnchorVersion, setCurrentAnchorVersion] =
-    useState<number | null>(null);
+  const a20Abs = useMemo(
+    () => joinPath(timelineFolderAbs, `${subjectId}_A20.png`),
+    [timelineFolderAbs, subjectId]
+  );
+  const a70Abs = useMemo(
+    () => joinPath(timelineFolderAbs, `${subjectId}_A70.png`),
+    [timelineFolderAbs, subjectId]
+  );
 
-  const [currentTimelineVersion, setCurrentTimelineVersion] =
-    useState<number | null>(null);
+  const [a20Preview, setA20Preview] = useState<string | null>(null);
+  const [a70Preview, setA70Preview] = useState<string | null>(null);
 
-  const [a20Preview, setA20Preview] = useState<string | undefined>(undefined);
-  const [a70Preview, setA70Preview] = useState<string | undefined>(undefined);
+  const [a20Base64, setA20Base64] = useState<string | null>(null);
+  const [a70Base64, setA70Base64] = useState<string | null>(null);
 
-  const [generating, setGenerating] = useState(false);
-  const [progress, setProgress] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
-  // -----------------------------
-  // VERSION HELPERS
-  // -----------------------------
-
-  const getLatestVersion = (basePath: string): number | null => {
-    if (!window.promptAPI?.pathExists) return null;
-
-    let version = 1;
-    let lastFound: number | null = null;
-
-    while (true) {
-      const versionPath = `${basePath}/v${version}`;
-      const exists = window.promptAPI.pathExists(versionPath);
-      if (!exists) break;
-      lastFound = version;
-      version++;
-    }
-
-    return lastFound;
-  };
-
-  const getNextVersion = (basePath: string): number => {
-    const latest = getLatestVersion(basePath);
-    return latest ? latest + 1 : 1;
-  };
-
-  // -----------------------------
-  // AUTO LOAD LATEST VERSIONS
-  // -----------------------------
-
+  // Load anchors from disk (if they exist)
   useEffect(() => {
-    const anchorBase = `D:/A360/A360_AgingDataset/Subjects/${subjectId}/anchors`;
-    const latest = getLatestVersion(anchorBase);
+    let active = true;
 
-    if (latest) {
-      setCurrentAnchorVersion(latest);
-      setSelectedAnchorVersion(latest);
+    async function load() {
+      setError("");
+      setStatus("Loading anchors from disk…");
 
-      const versionPath = `${anchorBase}/v${latest}`;
-      const a20Path = `${versionPath}/A20.png`;
-      const a70Path = `${versionPath}/A70.png`;
+      const a20 = await window.imageAPI?.loadImageBase64?.(a20Abs);
+      const a70 = await window.imageAPI?.loadImageBase64?.(a70Abs);
 
-      if (window.imageAPI?.loadImageBase64) {
-        window.imageAPI.loadImageBase64(a20Path).then((data) => {
-          if (data) setA20Preview(data);
-        });
+      if (!active) return;
 
-        window.imageAPI.loadImageBase64(a70Path).then((data) => {
-          if (data) setA70Preview(data);
-        });
-      }
+      setA20Preview(a20);
+      setA70Preview(a70);
+      setStatus("");
     }
 
-    const timelineBase = `D:/A360/A360_AgingDataset/Subjects/${subjectId}/timeline`;
-    const latestTimeline = getLatestVersion(timelineBase);
+    load().catch((e) => {
+      if (!active) return;
+      setError(String(e));
+      setStatus("");
+    });
 
-    if (latestTimeline) {
-      setCurrentTimelineVersion(latestTimeline);
+    return () => {
+      active = false;
+    };
+  }, [a20Abs, a70Abs]);
+
+  const handleUpload = (
+    file: File,
+    setPreview: (v: string) => void,
+    setB64: (v: string) => void
+  ) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result);
+      setPreview(dataUrl);
+      const parts = dataUrl.split(",");
+      setB64(parts.length > 1 ? parts[1] : "");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const saveAnchors = async () => {
+    setError("");
+
+    if (!a20Base64 && !a20Preview) {
+      setError("A20 is missing. Upload A20 (or place it in the TimelineA folder). ");
+      return;
     }
 
-  }, [subjectId]);
-
-  const generateTimeline = async () => {
-    if (!selectedAnchorVersion) {
-      alert("Select an anchor version.");
+    if (!a70Base64 && !a70Preview) {
+      setError("A70 is missing. Upload A70 (or place it in the TimelineA folder). ");
       return;
     }
 
     try {
-      setGenerating(true);
-      setProgress("Preparing timeline folder...");
+      setStatus("Saving anchors to TimelineA…");
 
-      const subjectBase = `D:/A360/A360_AgingDataset/Subjects/${subjectId}`;
-      const timelineBase = `${subjectBase}/timeline`;
+      // Ensure folder exists
+      window.promptAPI?.ensureDir?.(timelineFolderAbs);
 
-      window.promptAPI.ensureDir(timelineBase);
+      // Save only if user uploaded new images in this session
+      let a20Hash: string | null = null;
+      let a70Hash: string | null = null;
 
-      const newTimelineVersion = getNextVersion(timelineBase);
-      const timelinePath = `${timelineBase}/v${newTimelineVersion}`;
+      if (a20Base64) {
+        a20Hash = window.savePng(a20Abs, a20Base64);
+      }
+      if (a70Base64) {
+        a70Hash = window.savePng(a70Abs, a70Base64);
+      }
 
-      window.promptAPI.ensureDir(timelinePath);
-
-      const metadata = {
+      // Persist hashes (optional but good for ML traceability)
+      const hashRecord = {
         subjectId,
-        anchorVersion: selectedAnchorVersion,
-        timelineVersion: newTimelineVersion,
         timestamp: new Date().toISOString(),
-        mode: "manual_comfy",
+        A20: a20Hash,
+        A70: a70Hash,
       };
-
-      await window.promptAPI.savePromptFile(
-        `${timelinePath}/metadata.json`,
-        JSON.stringify(metadata, null, 2)
+      await window.promptAPI?.savePromptFile?.(
+        joinPath(timelineFolderAbs, `${subjectId}_anchor_hashes.json`),
+        JSON.stringify(hashRecord, null, 2)
       );
 
-      setCurrentTimelineVersion(newTimelineVersion);
-      setProgress("Timeline folder created. Run Comfy manually.");
-      alert(`Timeline v${newTimelineVersion} initialized.`);
-    } catch (err) {
-      console.error(err);
-      alert("Timeline initialization failed.");
-    } finally {
-      setGenerating(false);
+      // Reload from disk so UI reflects what actually exists
+      const a20 = await window.imageAPI?.loadImageBase64?.(a20Abs);
+      const a70 = await window.imageAPI?.loadImageBase64?.(a70Abs);
+
+      setA20Preview(a20);
+      setA70Preview(a70);
+
+      setA20Base64(null);
+      setA70Base64(null);
+
+      setStatus("Anchors saved.");
+      window.setTimeout(() => setStatus(""), 1500);
+    } catch (e: any) {
+      setError(String(e));
+      setStatus("");
     }
   };
 
-  // -----------------------------
-  // UI
-  // -----------------------------
+  const openTimelineFolder = async () => {
+    try {
+      await window.shellAPI?.openPath?.(timelineFolderAbs);
+    } catch (e: any) {
+      setError(String(e));
+    }
+  };
 
   return (
-    <div style={{ padding: 40 }}>
+    <div style={{ padding: 40, maxWidth: 1100 }}>
       <h1>Anchor Canvas</h1>
 
       <p>
@@ -146,107 +158,77 @@ export default function AnchorCanvas({
         <strong>Ethnicity:</strong> {ethnicity}
       </p>
 
-      <AnchorPromptBuilder
-        subjectId={subjectId}
-        sex={sex}
-        ethnicity={ethnicity}
-      />
-
-      {currentAnchorVersion && (
-        <div style={{ marginBottom: 20 }}>
-          Latest Anchor Version: <strong>v{currentAnchorVersion}</strong>
+      <div style={{ marginBottom: 16, padding: 12, border: "1px solid #ddd" }}>
+        <div>
+          <strong>TimelineA folder:</strong> {timelineFolderAbs}
         </div>
-      )}
-
-      {a20Preview && (
-        <div style={{ display: "flex", gap: 40, marginBottom: 20 }}>
-          <div>
-            <h3>A20</h3>
-            <img src={a20Preview} width={250} />
-          </div>
-          <div>
-            <h3>A70</h3>
-            <img src={a70Preview} width={250} />
-          </div>
-        </div>
-      )}
-
-      <div style={{ marginTop: 20 }}>
-        <h3>Replace Anchors (Optional)</h3>
-
-        <div style={{ display: "flex", gap: 40 }}>
-          <div>
-            <label>A20 Upload:</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                if (e.target.files?.[0]) {
-                  const file = e.target.files[0];
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    setA20Preview(reader.result as string);
-                  };
-                  reader.readAsDataURL(file);
-                }
-              }}
-            />
-          </div>
-
-          <div>
-            <label>A70 Upload:</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                if (e.target.files?.[0]) {
-                  const file = e.target.files[0];
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    setA70Preview(reader.result as string);
-                  };
-                  reader.readAsDataURL(file);
-                }
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
-
-      {currentAnchorVersion && (
-        <select
-          value={selectedAnchorVersion ?? ""}
-          onChange={(e) =>
-            setSelectedAnchorVersion(Number(e.target.value))
-          }
-        >
-          {Array.from(
-            { length: currentAnchorVersion },
-            (_, i) => i + 1
-          ).map((v) => (
-            <option key={v} value={v}>
-              Anchor v{v}
-            </option>
-          ))}
-        </select>
-      )}
-
-      <div style={{ marginTop: 30 }}>
-        <button disabled={generating} onClick={generateTimeline}>
-          {generating ? "Generating..." : "Generate New Timeline"}
+        <button onClick={openTimelineFolder} style={{ marginTop: 8 }}>
+          Open TimelineA Folder
         </button>
       </div>
 
-      {currentTimelineVersion && (
-        <div style={{ marginTop: 20 }}>
-          Latest Timeline Version: v{currentTimelineVersion}
+      <AnchorPromptBuilder subjectId={subjectId} sex={sex} ethnicity={ethnicity} />
+
+      <h2>Anchors</h2>
+      <div style={{ display: "flex", gap: 40, marginBottom: 20 }}>
+        <div>
+          <h3>A20</h3>
+          <div style={{ marginBottom: 6, fontFamily: "monospace" }}>{a20Abs}</div>
+          {a20Preview ? <img src={a20Preview} width={250} /> : <div>(missing)</div>}
+          <div style={{ marginTop: 8 }}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleUpload(f, (v) => setA20Preview(v), (v) => setA20Base64(v));
+              }}
+            />
+          </div>
         </div>
+
+        <div>
+          <h3>A70</h3>
+          <div style={{ marginBottom: 6, fontFamily: "monospace" }}>{a70Abs}</div>
+          {a70Preview ? <img src={a70Preview} width={250} /> : <div>(missing)</div>}
+          <div style={{ marginTop: 8 }}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleUpload(f, (v) => setA70Preview(v), (v) => setA70Base64(v));
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <button onClick={saveAnchors}>Save Anchors to TimelineA</button>
+
+      {status && <div style={{ marginTop: 10 }}>{status}</div>}
+      {error && (
+        <pre style={{ marginTop: 10, color: "red", whiteSpace: "pre-wrap" }}>
+          {error}
+        </pre>
       )}
 
-      {progress && (
-        <div style={{ marginTop: 10 }}>{progress}</div>
-      )}
+      <div style={{ marginTop: 24, padding: 12, border: "1px solid #eee" }}>
+        <h3>Manual ComfyUI (required)</h3>
+        <ol>
+          <li>Open ComfyUI and load your aging workflow.</li>
+          <li>Point the workflow’s image inputs to the saved anchors above (A20 and/or A70).</li>
+          <li>
+            Ensure ComfyUI output filenames include the subject + age, e.g.
+            <code style={{ marginLeft: 6 }}>{`${subjectId}_A45_00001_.png`}</code> or
+            <code style={{ marginLeft: 6 }}>{`subject${subjectId.slice(1)}_age045_00001_.png`}</code>.
+          </li>
+          <li>
+            Run generation. The Python watcher will automatically ingest outputs into
+            this subject’s TimelineA folder and update the Excel workbook.
+          </li>
+        </ol>
+      </div>
     </div>
   );
 }
