@@ -1,7 +1,4 @@
-export type WatcherStage =
-  | "PROMPT_OUTPUT"
-  | "ANCHOR"
-  | "COMFY_OUTPUT";
+export type WatcherStage = "PROMPT_OUTPUT" | "ANCHOR" | "COMFY_OUTPUT";
 
 export type WatcherStatus =
   | "WAITING"
@@ -17,6 +14,6 @@ export type WatcherEvent = {
   stage: WatcherStage;
   image: string;
   status: WatcherStatus;
-  path: string;
+  path?: string;
   timestamp: string;
 };

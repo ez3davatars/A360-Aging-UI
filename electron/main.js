@@ -22,7 +22,7 @@ function createWindow() {
   win.loadURL("http://localhost:5173");
 
   // Debug aid — keep for now
-  win.webContents.openDevTools();
+  //win.webContents.openDevTools();
 }
 
 app.whenReady().then(createWindow);

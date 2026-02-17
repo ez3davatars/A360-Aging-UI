@@ -1,7 +1,7 @@
 {
-  "projectRoot": "D:\\A360\\A360_AgingDataset\\CUI Workflows",
-  "excelPath": "D:\\A360\\A360_AgingDataset\\A360_AgingDataset_Master_Gemini_ComfyUI_v3_fullImages.xlsx",
-  "comfyOutputDir": "D:\\Comfy UI\\ComfyUI_full\\output",
+  "projectRoot": "D:/A360/A360_AgingDataset/CUI Workflows",
+  "excelPath": "D:/A360/A360_AgingDataset/A360_AgingDataset_Master_Gemini_ComfyUI_v3_fullImages.xlsx",
+  "comfyOutputDir": "D:/Comfy UI/ComfyUI_full/output/a360_outputs",
   "timelineCode": "A",
   "timelineFolderName": "TimelineA",
   "baseGenerator": "Gemini Flash 2.5 (NanoBanana Pro)",

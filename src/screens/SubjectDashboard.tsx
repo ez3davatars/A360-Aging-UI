@@ -1,34 +1,46 @@
 import { AppState } from "../state/subjectReducer";
-import ImageTile from "../components/ImageTile";
 import ComfyTimeline from "../components/ComfyTimeline";
+import { GlassCard } from "../components/ui/GlassCard";
+import { Activity } from "lucide-react";
 
 type Props = {
   state: AppState;
+  activeSubjectId: string;
+  timelineFolderAbs: string;
 };
 
-export default function SubjectDashboard({ state }: Props) {
+export default function SubjectDashboard({
+  state,
+  activeSubjectId,
+  timelineFolderAbs,
+}: Props) {
+  const subject = state.subjects?.[activeSubjectId];
+
   return (
-    <div>
-      <h2>Live Subject Monitor</h2>
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <Activity className="w-6 h-6 text-accent" />
+        <h2 className="text-2xl font-bold text-white">Live Subject Monitor</h2>
+      </div>
 
-      {Object.entries(state.subjects).map(([id, subject]) => (
-        <div key={id} style={{ border: "1px solid #ccc", padding: 12, marginBottom: 20 }}>
-          <h3>{id}</h3>
-
-          <h4>Prompt Outputs</h4>
-          {Object.entries(subject.promptOutputs).map(([k, v]) => (
-            <ImageTile key={k} label={k} image={v} />
-          ))}
-
-          <h4>Anchors</h4>
-          {Object.entries(subject.anchors).map(([k, v]) => (
-            <ImageTile key={k} label={k} image={v} />
-          ))}
-
-          <ComfyTimeline outputs={subject.comfyOutputs} />
+      <GlassCard className="space-y-6">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <h3 className="text-xl font-bold text-white tracking-tight">
+            {activeSubjectId}
+          </h3>
+          <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded font-medium">
+            Active
+          </span>
         </div>
-      ))}
+
+        {/* Single source-of-truth confirmation: governed TimelineA */}
+        <ComfyTimeline
+          key={activeSubjectId}
+          subjectId={activeSubjectId}
+          timelineFolderAbs={timelineFolderAbs}
+          outputs={subject?.comfyOutputs ?? {}}
+        />
+      </GlassCard>
     </div>
   );
 }
-

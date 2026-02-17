@@ -1,50 +1,61 @@
 import { useEffect, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 
 type Props = {
   label: string;
-  image?: {
-    status: string;
-    path?: string;
-  };
+  path?: string;
+  status?: string | null;
 };
 
-export default function ImageTile({ label, image }: Props) {
-  const [src, setSrc] = useState<string | null>(null);
+export default function ImageTile({ label, path, status }: Props) {
+  const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
 
-    if (image?.path && window.imageAPI) {
-      window.imageAPI.loadImageBase64(image.path).then((data: string | null) => {
+    async function loadImage() {
+      if (!path) {
+        setPreview(null);
+        return;
+      }
 
-        if (active) setSrc(data);
-      });
-    } else {
-      setSrc(null);
+      const b64 = await window.imageAPI?.loadImageBase64?.(path);
+      if (!active) return;
+
+      if (b64) setPreview(b64);
+      else setPreview(null);
     }
+
+    loadImage();
 
     return () => {
       active = false;
     };
-  }, [image?.path]);
+  }, [path]);
+
+  const fileExists = !!preview;
 
   return (
-    <div style={{ marginBottom: 8 }}>
-      <div>
-        <strong>{label}</strong>: {image?.status ?? "WAITING"}
-      </div>
+    <div className="w-[100px]">
+      <div className="relative bg-black/40 rounded-lg overflow-hidden border border-white/10">
+        <div className="absolute top-1 left-1 bg-black/60 text-[10px] px-2 py-0.5 rounded">
+          {label}
+        </div>
 
-      {src && (
-        <img
-          src={src}
-          style={{
-            width: 120,
-            borderRadius: 4,
-            marginTop: 4,
-            border: "1px solid #ccc",
-          }}
-        />
-      )}
+        {preview ? (
+          <img src={preview} alt={label} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-[90px] flex items-center justify-center text-xs text-white/40">
+            No Image
+          </div>
+        )}
+
+        {fileExists && (
+          <div className="absolute top-1 right-1 text-emerald-400">
+            <CheckCircle2 size={16} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

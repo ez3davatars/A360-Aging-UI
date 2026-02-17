@@ -86,8 +86,8 @@ async function loadImageBase64(filePath) {
       ext === "jpg" || ext === "jpeg"
         ? "image/jpeg"
         : ext === "webp"
-        ? "image/webp"
-        : "image/png";
+          ? "image/webp"
+          : "image/png";
 
     return `data:${mime};base64,${data.toString("base64")}`;
   } catch (err) {
