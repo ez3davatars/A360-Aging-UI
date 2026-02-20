@@ -36,10 +36,11 @@ export default function SubjectDashboard({
         {/* Single source-of-truth confirmation: governed TimelineA */}
         <ComfyTimeline
           key={activeSubjectId}
-          subjectId={activeSubjectId}
-          timelineFolderAbs={timelineFolderAbs}
           outputs={subject?.comfyOutputs ?? {}}
+          subjectId={activeSubjectId}
+          timelineDir={timelineFolderAbs}
         />
+
       </GlassCard>
     </div>
   );

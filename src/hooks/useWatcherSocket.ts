@@ -1,136 +1,187 @@
-import { useEffect } from "react";
-import { WatcherEvent, WatcherStage, WatcherStatus } from "../shared/watcherEvents";
+import { useEffect, type Dispatch } from "react";
+import { WatcherEvent } from "../shared/watcherEvents";
 
-function resolveWsUrl() {
-  const cfg = window.configAPI?.getConfig?.();
-  const host = cfg?.wsHost ?? "127.0.0.1";
-  const port = cfg?.wsPort ?? 8765;
-  return `ws://${host}:${port}`;
-}
+type AnyRecord = Record<string, any>;
 
-function padAge(age: number) {
-  const s = String(age);
-  return s.length === 1 ? `0${s}` : s;
-}
+function buildWsUrlCandidates(): string[] {
+  const cfg = (window as any)?.configAPI?.getConfig?.();
 
-function extractAgeFromString(s: string): number | null {
-  // Matches ..._A25... or ...A25...
-  const m = s.match(/\bA(\d{1,3})\b/i) || s.match(/_A(\d{1,3})/i) || s.match(/\bage(\d{2,3})\b/i);
-  if (!m) return null;
-  const n = Number(m[1]);
-  return Number.isFinite(n) ? n : null;
-}
-
-function normalizeWatcherEvent(raw: any): WatcherEvent | null {
-  const subjectId =
-    raw?.subjectId ??
-    raw?.subject_id ??
-    raw?.SubjectID ??
-    raw?.subject ??
+  const explicit =
+    cfg?.wsUrl ??
+    cfg?.watcherWsUrl ??
+    cfg?.watcherWSUrl ??
+    cfg?.watcherSocketUrl ??
     null;
 
-  if (!subjectId) return null;
+  const port = cfg?.wsPort ?? 8765;
+  const host = cfg?.wsHost ?? null;
 
-  const status: WatcherStatus =
-    (raw?.status ??
-      raw?.type ??
-      raw?.event ??
-      "DETECTED") as WatcherStatus;
+  const urls: string[] = [];
 
-  const age: number | null =
-    typeof raw?.age === "number"
-      ? raw.age
-      : typeof raw?.age === "string" && raw.age.trim()
-      ? Number(raw.age)
-      : raw?.filename
-      ? extractAgeFromString(String(raw.filename))
-      : raw?.path
-      ? extractAgeFromString(String(raw.path))
-      : raw?.dest
-      ? extractAgeFromString(String(raw.dest))
-      : null;
-
-  // We no longer use PROMPT_OUTPUT/ANCHOR in the UI monitor.
-  // Everything is treated as COMFY_OUTPUT and rendered in the timeline row.
-  const stage: WatcherStage = "COMFY_OUTPUT";
-
-  // Key: ComfyTimeline expects "A25.png"
-  let imageKey = raw?.image as string | undefined;
-  if (!imageKey && age != null && Number.isFinite(age)) {
-    imageKey = `A${padAge(age)}.png`;
+  if (typeof explicit === "string" && explicit.trim()) {
+    urls.push(explicit.trim());
   }
-  if (!imageKey && raw?.filename) {
-    const a = extractAgeFromString(String(raw.filename));
-    imageKey = a != null ? `A${padAge(a)}.png` : String(raw.filename);
+
+  if (typeof host === "string" && host.trim()) {
+    urls.push(`ws://${host.trim()}:${port}`);
   }
-  if (!imageKey) return null;
 
-  // Path mapping:
-  // For the dashboard confirmation row, we only care about "stored" paths.
-  // DETECTED/VALIDATED often point to Comfy staging files; don't surface those here.
-  let path: string | undefined =
-    raw?.dest ??
-    raw?.dest_path ??
-    (status === "STORED" || status === "INGESTED" ? raw?.path : undefined) ??
-    undefined;
+  // Robust local fallbacks (covers IPv4-only + IPv6-only watchers)
+  urls.push(`ws://127.0.0.1:${port}`);
+  urls.push(`ws://localhost:${port}`);
+  urls.push(`ws://[::1]:${port}`);
 
-  const timestamp: string =
-    raw?.timestamp ??
-    raw?.ts ??
-    raw?.ts_utc ??
-    new Date().toISOString();
-
-  const evt: WatcherEvent = {
-    subjectId: String(subjectId),
-    stage,
-    image: String(imageKey),
-    status,
-    path,
-    timestamp,
-  };
-
-  return evt;
+  return Array.from(new Set(urls));
 }
 
-export function useWatcherSocket(dispatch: React.Dispatch<WatcherEvent>) {
+function normalizeWatcherEvent(raw: unknown): WatcherEvent | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as AnyRecord;
+
+  // Some emitters wrap payload under "data"
+  const base: AnyRecord = r.data && typeof r.data === "object" ? { ...r, ...r.data } : { ...r };
+
+  const typeRaw = base.type ?? base.event ?? base.kind ?? base.action ?? base.name;
+  const type = typeof typeRaw === "string" ? typeRaw.toUpperCase() : typeRaw;
+
+  const subjectId = base.subjectId ?? base.subject_id ?? base.subjectID ?? base.subject ?? base.id;
+
+  const path =
+    base.path ??
+    base.filePath ??
+    base.file_path ??
+    base.file ??
+    base.filename ??
+    base.full_path;
+
+  if (!type) return null;
+
+  const normalized: AnyRecord = { ...base, type };
+
+  // Keep both keys to satisfy older reducers/UI consumers
+  if (subjectId != null) {
+    normalized.subjectId = subjectId;
+    normalized.subject_id = subjectId;
+  }
+
+  if (path != null) {
+    normalized.path = path;
+    normalized.filePath = path;
+    normalized.file_path = path;
+  }
+
+  return normalized as WatcherEvent;
+}
+
+async function readMessageData(data: any): Promise<string | null> {
+  if (typeof data === "string") return data;
+
+  // ArrayBuffer
+  if (data instanceof ArrayBuffer) {
+    return new TextDecoder().decode(data);
+  }
+
+  // Blob
+  if (typeof Blob !== "undefined" && data instanceof Blob) {
+    return await data.text();
+  }
+
+  return null;
+}
+
+export function useWatcherSocket(dispatch: Dispatch<WatcherEvent>) {
   useEffect(() => {
+    const urls = buildWsUrlCandidates();
+    let preferredUrl: string | null = null;
+    let urlIndex = 0;
+
     let socket: WebSocket | null = null;
-    let retryTimeout: number | null = null;
+    let retryTimer: number | null = null;
+    let connectTimeout: number | null = null;
+
+    let retryMs = 750;
+    let unmounted = false;
+
+    const scheduleReconnect = (rotateHost: boolean) => {
+      if (retryTimer) window.clearTimeout(retryTimer);
+      if (connectTimeout) window.clearTimeout(connectTimeout);
+
+      if (rotateHost) {
+        preferredUrl = null;
+        urlIndex = (urlIndex + 1) % urls.length;
+      }
+
+      retryMs = Math.min(Math.round(retryMs * 1.5), 5000);
+      retryTimer = window.setTimeout(connect, retryMs);
+    };
 
     const connect = () => {
-      const WS_URL = resolveWsUrl();
-      socket = new WebSocket(WS_URL);
+      if (unmounted) return;
+
+      const url = preferredUrl ?? urls[urlIndex] ?? `ws://127.0.0.1:8765`;
+
+      let opened = false;
+
+      try {
+        socket = new WebSocket(url);
+      } catch {
+        scheduleReconnect(true);
+        return;
+      }
+
+      // If it never opens, force-close and rotate
+      connectTimeout = window.setTimeout(() => {
+        if (!opened) {
+          try {
+            socket?.close();
+          } catch { }
+        }
+      }, 2000);
 
       socket.onopen = () => {
-        console.log("[Watcher] connected", WS_URL);
+        opened = true;
+        retryMs = 750;
+        preferredUrl = url;
+        console.log("[Watcher] connected", url);
       };
 
-      socket.onmessage = (msg) => {
+      socket.onmessage = async (msg) => {
         try {
-          const raw = JSON.parse(msg.data);
-          const event = normalizeWatcherEvent(raw);
-          if (event) dispatch(event);
+          const text = await readMessageData(msg.data);
+          if (!text) return;
+
+          const raw = JSON.parse(text);
+          const evt = normalizeWatcherEvent(raw);
+          if (!evt) return;
+
+          dispatch(evt);
         } catch (e) {
-          console.warn("[Watcher] bad message", e);
+          console.warn("[Watcher] message parse failed", e);
         }
       };
 
       socket.onerror = () => {
-        console.warn("[Watcher] socket error — retrying");
-        socket?.close();
+        console.warn("[Watcher] socket error");
       };
 
       socket.onclose = () => {
-        retryTimeout = window.setTimeout(connect, 1000);
+        if (unmounted) return;
+
+        // If we never opened, rotate host candidate (covers ::1 vs 127.0.0.1 mismatch)
+        scheduleReconnect(!opened);
       };
     };
 
-    const initialTimeout = window.setTimeout(connect, 500);
+    const initial = window.setTimeout(connect, 200);
 
     return () => {
-      if (retryTimeout) clearTimeout(retryTimeout);
-      clearTimeout(initialTimeout);
-      socket?.close();
+      unmounted = true;
+      window.clearTimeout(initial);
+      if (retryTimer) window.clearTimeout(retryTimer);
+      if (connectTimeout) window.clearTimeout(connectTimeout);
+      try {
+        socket?.close();
+      } catch { }
     };
   }, [dispatch]);
 }

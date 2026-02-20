@@ -23,12 +23,17 @@ function bucketForStage(stage: string): keyof SubjectState {
   return stage === "PROMPT_OUTPUT"
     ? "promptOutputs"
     : stage === "ANCHOR"
-    ? "anchors"
-    : "comfyOutputs";
+      ? "anchors"
+      : "comfyOutputs";
 }
 
 export function reducer(state: AppState, event: WatcherEvent): AppState {
   const { subjectId, stage, image, status, path } = event;
+
+  if (!subjectId || !image) {
+    console.warn("[Reducer] Missing subjectId or image in event", event);
+    return state;
+  }
 
   const subject =
     state.subjects[subjectId] ?? {

@@ -77,6 +77,7 @@ export default function App() {
             subjectId={subject.subjectId}
             sex={subject.sex}
             ethnicity={subject.ethnicity}
+            fitzpatrickTone={subject.fitzpatrickTone}
             timelineFolderAbs={subject.timelineFolderAbs}
           />
 

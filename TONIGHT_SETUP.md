@@ -24,7 +24,7 @@ Option B (manual):
 
 Terminal 1:
 ```bash
-python python/a360_watcher.py
+python python/A360_auto_move_with_excel.py
 ```
 
 Terminal 2:

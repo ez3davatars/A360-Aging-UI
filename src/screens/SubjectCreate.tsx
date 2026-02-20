@@ -66,7 +66,11 @@ export default function SubjectCreate({
             : sex;
 
       if (!window.runPython) throw new Error("runPython API missing");
-      const stdout = await window.runPython("python/a360_subject_cli.py", [
+      if (!cfg.subjectRoot) {
+        throw new Error("Config missing subjectRoot");
+      }
+
+      const args: string[] = [
         "create-subject",
         "--sex",
         sexNorm,
@@ -75,8 +79,16 @@ export default function SubjectCreate({
         "--fitz",
         fitz,
         "--notes",
-        notes,
-      ]);
+        notes || "",
+        "--subjectRoot",
+        String(cfg.subjectRoot),
+      ];
+
+            if (cfg.excelPath) args.push("--excel", String(cfg.excelPath));
+      if (cfg.timelineFolderName)
+        args.push("--timelineFolderName", String(cfg.timelineFolderName));
+
+      const stdout = await window.runPython("python/update_subject_notes.py", args);
 
       const data = JSON.parse(stdout) as SubjectCreateResult;
 
@@ -123,13 +135,13 @@ export default function SubjectCreate({
           </div>
           <div className="bg-black/20 p-3 rounded-lg border border-white/5 space-y-1">
             <div className="text-muted-foreground flex items-center gap-1">
-              <FolderOpen className="w-3 h-3" /> Project Root
+              <FolderOpen className="w-3 h-3" /> Subject Root
             </div>
             <div
               className="font-mono text-white/80 truncate"
-              title={cfg?.projectRoot}
+              title={cfg?.subjectRoot ?? ""}
             >
-              {cfg?.projectRoot ?? "(not loaded)"}
+              {cfg?.subjectRoot ?? "(not loaded)"}
             </div>
           </div>
         </div>

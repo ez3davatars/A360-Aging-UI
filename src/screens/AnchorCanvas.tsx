@@ -8,6 +8,7 @@ type Props = {
   subjectId: string;
   sex: string;
   ethnicity: string;
+  fitzpatrickTone: string;
   timelineFolderAbs: string;
 };
 
@@ -19,6 +20,7 @@ export default function AnchorCanvas({
   subjectId,
   sex,
   ethnicity,
+  fitzpatrickTone,
   timelineFolderAbs,
 }: Props) {
   const a20Abs = useMemo(
@@ -200,7 +202,7 @@ export default function AnchorCanvas({
         </div>
       </GlassCard>
 
-      <AnchorPromptBuilder subjectId={subjectId} sex={sex} ethnicity={ethnicity} />
+      <AnchorPromptBuilder subjectId={subjectId} sex={sex} ethnicity={ethnicity} fitzpatrickTone={fitzpatrickTone} />
 
       <div className="flex flex-wrap gap-8 justify-center">
         {/* A20 Output */}

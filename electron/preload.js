@@ -11,15 +11,29 @@ const crypto = require("crypto");
 // --------------------
 function resolveConfigPath() {
   // Priority:
-  // 1) Env var
-  // 2) a360.config.json in app CWD (repo root in dev)
-  // 3) a360.config.json next to this preload (fallback)
+  // 1) Env var (absolute path recommended)
+  // 2) In app CWD
+  // 3) Next to this preload
+  // 4) One/two levels above preload
   const envPath = process.env.A360_CONFIG_PATH;
-  if (envPath) return envPath;
+  if (envPath && fs.existsSync(envPath)) return envPath;
 
-  const cwdCandidate = path.join(process.cwd(), "a360.config.json");
-  if (fs.existsSync(cwdCandidate)) return cwdCandidate;
+  const names = ["a360.config.json", "a360_config.json"];
+  const dirs = [
+    process.cwd(),
+    __dirname,
+    path.join(__dirname, ".."),
+    path.join(__dirname, "..", ".."),
+  ];
 
+  for (const dir of dirs) {
+    for (const name of names) {
+      const candidate = path.join(dir, name);
+      if (fs.existsSync(candidate)) return candidate;
+    }
+  }
+
+  // Last resort (keeps behavior close to previous versions)
   return path.join(__dirname, "..", "a360.config.json");
 }
 
@@ -35,23 +49,88 @@ function readConfig() {
 }
 
 // --------------------
-// Python bridge
+// Python bridge (Option B safe)
 // --------------------
+function resolveScriptPath(script, cfg) {
+  // Force scripts to resolve inside a known root.
+  // Prevents renderer from executing arbitrary local files outside the project.
+  const scriptsRoot = cfg?.scriptsRoot || cfg?.datasetRoot || cfg?.subjectRoot;
+  const base = scriptsRoot ? path.resolve(String(scriptsRoot)) : process.cwd();
+
+  const resolved = path.isAbsolute(script)
+    ? path.resolve(script)
+    : path.resolve(base, script);
+
+  // Enforce containment within base (best-effort safety)
+  const rel = path.relative(base, resolved);
+  if (rel.startsWith("..") || path.isAbsolute(rel)) {
+    throw new Error(`Refusing to execute script outside scriptsRoot: ${resolved}`);
+  }
+
+  return resolved;
+}
+
 function runPython(script, args = []) {
   return new Promise((resolve, reject) => {
-    const proc = spawn("python", [script, ...args], {
+    const cfg = readConfig() || {};
+
+    // Prefer explicit datasetRoot; fall back to parent of excelPath.
+    const datasetRoot =
+      cfg.datasetRoot ||
+      (cfg.excelPath ? path.dirname(String(cfg.excelPath)) : null) ||
+      process.cwd();
+
+    const cwd = path.resolve(String(datasetRoot));
+
+    let scriptPath;
+    try {
+      scriptPath = resolveScriptPath(String(script), cfg);
+    } catch (e) {
+      return reject(String(e?.message || e));
+    }
+
+    const py = cfg.pythonPath || "py"; // prefer Windows launcher
+    const timeoutMs = Number(cfg.pythonTimeoutMs ?? 120000);
+
+    // Unbuffered output so UI can see logs immediately.
+    const pyArgs =
+      String(py).toLowerCase() === "py"
+        ? ["-3", "-u", scriptPath, ...args]
+        : ["-u", scriptPath, ...args];
+
+    const proc = spawn(py, pyArgs, {
       windowsHide: true,
+      cwd,
+      env: {
+        ...process.env,
+        PYTHONIOENCODING: "utf-8",
+      },
     });
 
     let out = "";
     let err = "";
 
-    proc.stdout.on("data", (d) => (out += d.toString()));
-    proc.stderr.on("data", (d) => (err += d.toString()));
+    proc.on("error", (e) => {
+      reject(`Failed to start Python (${py}): ${e.message}`);
+    });
+
+    proc.stdout.setEncoding("utf8");
+    proc.stderr.setEncoding("utf8");
+
+    proc.stdout.on("data", (d) => (out += d));
+    proc.stderr.on("data", (d) => (err += d));
+
+    const timer = setTimeout(() => {
+      try {
+        proc.kill();
+      } catch (_) {}
+      reject(`Python timed out after ${timeoutMs}ms\n${(err || out).trim()}`);
+    }, timeoutMs);
 
     proc.on("close", (code) => {
-      if (code === 0) resolve(out);
-      else reject(err || `Python exited with code ${code}`);
+      clearTimeout(timer);
+      if (code === 0) resolve((out || "").trim());
+      else reject(((err || out) || `Python exited with code ${code}`).trim());
     });
   });
 }

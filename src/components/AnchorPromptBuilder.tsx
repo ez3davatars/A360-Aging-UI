@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   buildA20AnchorPrompt,
   buildA70AnchorPrompt,
@@ -14,6 +14,7 @@ type Props = {
   subjectId: string;
   sex: string;
   ethnicity: string;
+  fitzpatrickTone: string;
   locked?: boolean;
 };
 
@@ -21,9 +22,10 @@ export default function AnchorPromptBuilder({
   subjectId,
   sex,
   ethnicity,
+  fitzpatrickTone,
   locked = false,
 }: Props) {
-  const [fitzpatrick, setFitzpatrick] = useState("V");
+  const [fitzpatrick, setFitzpatrick] = useState(fitzpatrickTone || "V");
   const [faceShape, setFaceShape] = useState("");
   const [facialFeatures, setFacialFeatures] = useState("");
   const [hair, setHair] = useState("");
@@ -34,7 +36,6 @@ export default function AnchorPromptBuilder({
 
   const [notesSaveStatus, setNotesSaveStatus] = useState<string>("");
   const [notesSaveError, setNotesSaveError] = useState<string>("");
-
 
   function intensityLabel(level: number) {
     const labels = [
@@ -50,81 +51,201 @@ export default function AnchorPromptBuilder({
 
   function mapScarIntensity(level: number) {
     switch (level) {
-      case 0: return "No visible scar.";
-      case 1: return "A very faint, barely noticeable scar.";
-      case 2: return "A small, subtle scar that is lightly visible.";
-      case 3: return "A clearly visible but not dominant scar.";
-      case 4: return "A prominent scar that is immediately noticeable.";
-      case 5: return "A highly pronounced scar that is visually dominant.";
-      default: return "";
+      case 0:
+        return "No visible scar.";
+      case 1:
+        return "A very faint, barely noticeable scar.";
+      case 2:
+        return "A small, subtle scar that is lightly visible.";
+      case 3:
+        return "A clearly visible but not dominant scar.";
+      case 4:
+        return "A prominent scar that is immediately noticeable.";
+      case 5:
+        return "A highly pronounced scar that is visually dominant.";
+      default:
+        return "";
     }
   }
 
   function mapImperfectionIntensity(level: number) {
     switch (level) {
-      case 0: return "No freckles or visible imperfections.";
-      case 1: return "Very sparse, barely visible freckles.";
-      case 2: return "Light distribution of freckles, subtly noticeable.";
-      case 3: return "Moderate density of freckles clearly visible.";
-      case 4: return "Dense freckles and visible skin imperfections.";
-      case 5: return "Heavy, prominent freckles and strong visible skin imperfections.";
-      default: return "";
+      case 0:
+        return "No freckles or visible imperfections.";
+      case 1:
+        return "Very sparse, barely visible freckles.";
+      case 2:
+        return "Light distribution of freckles, subtly noticeable.";
+      case 3:
+        return "Moderate density of freckles clearly visible.";
+      case 4:
+        return "Dense freckles and visible skin imperfections.";
+      case 5:
+        return "Heavy, prominent freckles and strong visible skin imperfections.";
+      default:
+        return "";
     }
   }
 
-
   function buildNotesText() {
+    // Compact ML form (notes_meta holds the full structured payload)
     const parts: string[] = [];
-    if (faceShape.trim()) parts.push(`Face shape: ${faceShape.trim()}`);
-    if (hair.trim()) parts.push(`Hair: ${hair.trim()}`);
-    if (markers.trim()) parts.push(`Marks: ${markers.trim()}`);
-    if (facialFeatures.trim()) parts.push(`Facial features: ${facialFeatures.trim()}`);
-    // Include intensity labels for ML provenance
-    parts.push(`Scar intensity: ${intensityLabel(scarIntensity)}`);
-    parts.push(`Freckles/imperfections: ${intensityLabel(imperfectionIntensity)}`);
+
+    if (fitzpatrick.trim()) parts.push(`skin=${fitzpatrick.trim()}`);
+    if (hair.trim()) parts.push(`hair=${hair.trim()}`);
+    if (faceShape.trim()) parts.push(`face_shape=${faceShape.trim()}`);
+    if (facialFeatures.trim()) parts.push(`facial_features=${facialFeatures.trim()}`);
+    if (markers.trim()) parts.push(`marks=${markers.trim()}`);
+
     return parts.join(" | ");
   }
 
-  async function saveNotesToExcel() {
+  function buildNotesMeta() {
+    return {
+      subject_id: subjectId,
+      sex,
+      ethnicity_group: ethnicity,
+      skin: fitzpatrick,
+      hair,
+      face_shape: faceShape,
+      facial_features: facialFeatures,
+      marks: markers,
+
+      scar_intensity: scarIntensity,
+      scar_intensity_label: intensityLabel(scarIntensity),
+      imperfection_intensity: imperfectionIntensity,
+      imperfection_intensity_label: intensityLabel(imperfectionIntensity),
+    };
+  }
+
+  async function saveNotes(opts: { silent?: boolean; reason?: string } = {}) {
     setNotesSaveError("");
-    setNotesSaveStatus("Saving Notes to Excel...");
+    if (!opts.silent) setNotesSaveStatus(opts.reason || "Saving metadata...");
 
-    const cfg = window.configAPI?.getConfig?.();
-    const excelPath = cfg?.excelPath as string | undefined;
+    const cfg = await window.configAPI?.getConfig?.();
 
-    if (!excelPath) {
+    const subjectRoot =
+      (cfg as any)?.subjectRoot ||
+      (cfg as any)?.projectRoot ||
+      (cfg as any)?.datasetRoot ||
+      undefined;
+
+    const excelPath = (cfg as any)?.excelPath as string | undefined;
+
+    if (!subjectRoot) {
       setNotesSaveStatus("");
-      setNotesSaveError("Missing excelPath in a360.config.json");
+      setNotesSaveError(
+        "Missing subjectRoot/projectRoot in a360.config.json (need a folder that contains subjectNNN folders)."
+      );
       return;
     }
 
     const notes = buildNotesText();
-    if (!notes.trim()) {
-      setNotesSaveStatus("");
-      setNotesSaveError("Notes are empty. Add at least one field (Face shape, Hair, Marks, or Facial features).");
+    const meta = buildNotesMeta();
+
+    if (!subjectId || !subjectId.trim()) {
       return;
     }
 
     try {
-      // Writes Subjects.Notes and (optionally) Fitzpatrick tone
-      if (!window.runPython) throw new Error("python bridge missing");
-      await window.runPython("python/update_subject_notes.py", [
-        "--excel",
-        excelPath,
-        "--subject",
-        subjectId,
-        "--notes",
-        notes,
-        "--fitz",
-        fitzpatrick,
-      ]);
-      setNotesSaveStatus("Notes saved to Excel.");
-      window.setTimeout(() => setNotesSaveStatus(""), 2000);
+      const args: string[] = [];
+
+      if (excelPath) args.push("--excel", excelPath);
+
+      // Option B: JSON authoritative
+      args.push("--subjectRoot", subjectRoot);
+      args.push("--subject", subjectId.trim());
+      args.push("--notes", notes || "");
+      args.push("--meta", JSON.stringify(meta || {}));
+
+      const raw = await window.runPython?.("python/update_subject_notes.py", args);
+
+      let parsed: any = null;
+      try {
+        parsed = raw ? JSON.parse(raw) : null;
+      } catch {
+        parsed = null;
+      }
+
+      const message = parsed?.excelUpdated
+        ? "Metadata saved (Excel mirrored)"
+        : "Metadata saved";
+
+      setNotesSaveStatus(opts.silent ? "Auto-saved" : message);
+      window.setTimeout(() => setNotesSaveStatus(""), opts.silent ? 900 : 2500);
+
+      if (parsed?.excelError) {
+        // Excel is mirror-only; show warning but do not fail
+        setNotesSaveError(String(parsed.excelError));
+      }
     } catch (e: any) {
       setNotesSaveStatus("");
       setNotesSaveError(String(e));
     }
   }
+
+
+  // Auto-save Notes (debounced) while editing.
+  const autoSaveTimerRef = useRef<number | null>(null);
+  const lastAutoSavedFingerprintRef = useRef<string>("");
+
+  useEffect(() => {
+    if (locked) return;
+
+    const notes = buildNotesText();
+    const meta = buildNotesMeta();
+
+    const hasMeaningfulDetail =
+      faceShape.trim().length > 0 ||
+      facialFeatures.trim().length > 0 ||
+      hair.trim().length > 0 ||
+      markers.trim().length > 0 ||
+      fitzpatrick.trim() !== "V" ||
+      scarIntensity !== 2 ||
+      imperfectionIntensity !== 2;
+
+    if (!hasMeaningfulDetail) return;
+
+    const fingerprint = JSON.stringify({ notes, meta });
+    if (fingerprint === lastAutoSavedFingerprintRef.current) return;
+
+    if (autoSaveTimerRef.current) {
+      window.clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = window.setTimeout(() => {
+      lastAutoSavedFingerprintRef.current = fingerprint;
+      void saveNotes({ silent: true, reason: "Auto-saved" });
+    }, 900);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        window.clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [
+    subjectId,
+    locked,
+    sex,
+    ethnicity,
+    fitzpatrick,
+    faceShape,
+    facialFeatures,
+    hair,
+    markers,
+    scarIntensity,
+    imperfectionIntensity,
+  ]);
+
+  // Forced save when the UI transitions to locked (anchors saved / timeline complete).
+  const prevLockedRef = useRef<boolean>(locked);
+  useEffect(() => {
+    const wasLocked = prevLockedRef.current;
+    if (!wasLocked && locked) {
+      void saveNotes({ silent: false, reason: "Locked — saving metadata" });
+    }
+    prevLockedRef.current = locked;
+  }, [locked]);
 
   const promptA20 = useMemo(() => {
     return buildA20AnchorPrompt({
@@ -138,7 +259,17 @@ export default function AnchorPromptBuilder({
       scarIntensity: mapScarIntensity(scarIntensity),
       imperfectionIntensity: mapImperfectionIntensity(imperfectionIntensity),
     });
-  }, [sex, ethnicity, fitzpatrick, faceShape, facialFeatures, hair, markers, scarIntensity, imperfectionIntensity]);
+  }, [
+    sex,
+    ethnicity,
+    fitzpatrick,
+    faceShape,
+    facialFeatures,
+    hair,
+    markers,
+    scarIntensity,
+    imperfectionIntensity,
+  ]);
 
   const promptA70 = useMemo(() => {
     return buildA70AnchorPrompt({
@@ -158,25 +289,18 @@ export default function AnchorPromptBuilder({
         <span className="text-xs text-muted-foreground ml-auto font-mono">
           Templates: {A20_PROMPT_VERSION} / {A70_PROMPT_VERSION}
         </span>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={locked}
-          onClick={saveNotesToExcel}
-          className="h-7 text-xs ml-3"
-          title="Writes Subjects.Notes and Fitzpatrick tone to Excel"
-        >
-          Save Notes
-        </Button>
-
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Identity Controls */}
         <div className="space-y-4">
-          <h3 className="text-sm font-medium text-white/80 border-b border-white/10 pb-2">Physical Attributes</h3>
+          <h3 className="text-sm font-medium text-white/80 border-b border-white/10 pb-2">
+            Physical Attributes
+          </h3>
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Fitzpatrick Scale</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              Fitzpatrick Tone
+            </label>
             <select
               value={fitzpatrick}
               disabled={locked}
@@ -184,7 +308,9 @@ export default function AnchorPromptBuilder({
               className="w-full h-10 rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all"
             >
               {["I", "II", "III", "IV", "V", "VI"].map((v) => (
-                <option key={v} value={v}>{v}</option>
+                <option key={v} value={v}>
+                  {v}
+                </option>
               ))}
             </select>
           </div>
@@ -214,7 +340,9 @@ export default function AnchorPromptBuilder({
           />
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Facial Features</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              Facial Features
+            </label>
             <textarea
               rows={3}
               value={facialFeatures}
@@ -235,8 +363,12 @@ export default function AnchorPromptBuilder({
           <div className="space-y-4 pt-2">
             <div className="space-y-3 p-4 bg-black/20 rounded-lg border border-white/5">
               <div className="flex justify-between items-center text-xs">
-                <label className="font-medium text-muted-foreground">Scar Intensity</label>
-                <span className="text-accent font-bold">{intensityLabel(scarIntensity)}</span>
+                <label className="font-medium text-muted-foreground">
+                  Scar Intensity
+                </label>
+                <span className="text-accent font-bold">
+                  {intensityLabel(scarIntensity)}
+                </span>
               </div>
               <input
                 type="range"
@@ -251,8 +383,12 @@ export default function AnchorPromptBuilder({
 
             <div className="space-y-3 p-4 bg-black/20 rounded-lg border border-white/5">
               <div className="flex justify-between items-center text-xs">
-                <label className="font-medium text-muted-foreground">Imperfections / Freckles</label>
-                <span className="text-accent font-bold">{intensityLabel(imperfectionIntensity)}</span>
+                <label className="font-medium text-muted-foreground">
+                  Imperfections / Freckles
+                </label>
+                <span className="text-accent font-bold">
+                  {intensityLabel(imperfectionIntensity)}
+                </span>
               </div>
               <input
                 type="range"
@@ -260,7 +396,9 @@ export default function AnchorPromptBuilder({
                 max="5"
                 value={imperfectionIntensity}
                 disabled={locked}
-                onChange={(e) => setImperfectionIntensity(Number(e.target.value))}
+                onChange={(e) =>
+                  setImperfectionIntensity(Number(e.target.value))
+                }
                 className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
               />
             </div>
@@ -272,8 +410,15 @@ export default function AnchorPromptBuilder({
       <div className="grid grid-cols-1 gap-6 mt-8 pt-6 border-t border-white/10">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">A20 Prompt</h3>
-            <Button size="sm" variant="ghost" onClick={() => copy(promptA20)} className="h-7 text-xs">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+              A20 Prompt
+            </h3>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => copy(promptA20)}
+              className="h-7 text-xs"
+            >
               <Copy className="w-3 h-3 mr-1" /> Copy
             </Button>
           </div>
@@ -289,8 +434,15 @@ export default function AnchorPromptBuilder({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">A70 Prompt</h3>
-            <Button size="sm" variant="ghost" onClick={() => copy(promptA70)} className="h-7 text-xs">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+              A70 Prompt
+            </h3>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => copy(promptA70)}
+              className="h-7 text-xs"
+            >
               <Copy className="w-3 h-3 mr-1" /> Copy
             </Button>
           </div>
@@ -309,7 +461,9 @@ export default function AnchorPromptBuilder({
             <div className="text-emerald-300">{notesSaveStatus}</div>
           )}
           {notesSaveError && (
-            <div className="text-red-300 whitespace-pre-line">{notesSaveError}</div>
+            <div className="text-red-300 whitespace-pre-line">
+              {notesSaveError}
+            </div>
           )}
         </div>
       )}
