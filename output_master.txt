@@ -1,0 +1,18 @@
+Columns: ['SubjectID', 'Sex', 'Ethnicity_Group', 'Folder_Name', 'Base_Path', 'Fitzpatrick_Tone', 'Notes', 'Base_Generator', 'Default_Workflow', 'Anchor_Ages', 'Image_Set_Status', 'FacialFeatures', 'AnchorPrompt_A20', 'AnchorPrompt_A70', 'Created_UTC', 'Created_By']
+FOUND S003 at row 4:
+  SubjectID: S003
+  Sex: Male
+  Ethnicity_Group: East African
+  Folder_Name: East_African_Male
+  Base_Path: Aging/Male/East_African_Male/subject003
+  Fitzpatrick_Tone: V
+  Notes: Wide cheekbones, smooth skin
+  Base_Generator: Gemini Flash 2.5 (NanoBanana Pro)
+  Default_Workflow: A360_Aging_Progression_v1
+  Anchor_Ages: 20,70
+  Image_Set_Status: TimelineA complete
+  FacialFeatures: None
+  AnchorPrompt_A20: None
+  AnchorPrompt_A70: None
+  Created_UTC: None
+  Created_By: None

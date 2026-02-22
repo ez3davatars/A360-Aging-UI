@@ -401,7 +401,7 @@ class AgeImageEventHandler(FileSystemEventHandler):
         event = {
             "subjectId": subject_id,
             "stage": "COMFY_OUTPUT",
-            "image": f"A{age}",
+            "image": f"A{age}.png",
             "status": status,
             "path": path,
             "timestamp": time.time(),

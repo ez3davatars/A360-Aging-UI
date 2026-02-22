@@ -1,8 +1,8 @@
 {
-  "datasetRoot": "D:/A360/A360_AgingDataset",
+  "projectRoot": "D:/A360/A360_AgingDataset",
   "subjectRoot": "D:/A360/A360_AgingDataset/CUI Workflows/Aging",
   "scriptsRoot": "D:/A360_App",
-  "excelPath": "D:/A360/A360_AgingDataset/A360_AgingDataset_Mirror.xlsx",
+  "excelPath": "C:/Users/clone/OneDrive/Desktop/A360_AgingDataset_Master_Gemini_ComfyUI_v3_fullImages.xlsx",
   "comfyOutputDir": "D:/Comfy UI/ComfyUI_full/output/a360_outputs",
   "timelineCode": "A",
   "timelineFolderName": "TimelineA",

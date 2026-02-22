@@ -340,11 +340,11 @@ def cmd_create_subject(argv: list[str], cwd: Path, cfg: Dict[str, Any]) -> int:
     base_rel = ""
     timeline_rel = ""
     try:
-        base_rel = subject_folder.relative_to(project_root).as_posix()
+        base_rel = subject_folder.relative_to(aging_root).as_posix()
     except Exception:
         base_rel = subject_folder.name
     try:
-        timeline_rel = timeline_folder.relative_to(project_root).as_posix()
+        timeline_rel = timeline_folder.relative_to(aging_root).as_posix()
     except Exception:
         timeline_rel = (subject_folder.name + "/" + timeline_name)
 
@@ -450,7 +450,7 @@ def cmd_update_notes(argv: list[str], cwd: Path, cfg: Dict[str, Any]) -> int:
 
     base_rel = ""
     try:
-        base_rel = subject_folder.relative_to(project_root).as_posix()
+        base_rel = subject_folder.relative_to(aging_root).as_posix()
     except Exception:
         base_rel = subject_folder.name
 

@@ -1,5 +1,9 @@
-A360 Aging Dataset Pipeline (A360-ADP)
+# A360 Aging Dataset Pipeline (A360-ADP)
 v1.1.2 Developer Overview
+
+> [!TIP]
+> **New to the project?** Head over to the [User Guide](file:///d:/A360_App/USER_GUIDE.md) for a step-by-step setup and workflow tutorial.
+
 Technical Architecture & Expansion Framework
 A360-ADP v1.1.2 delivers a stable, scalable foundation for a full facial phenotyping engine. This
 document provides your high-level architectural overview.

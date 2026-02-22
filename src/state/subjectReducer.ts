@@ -35,6 +35,9 @@ export function reducer(state: AppState, event: WatcherEvent): AppState {
     return state;
   }
 
+  // Normalize image key: A20 -> A20.png
+  const normalizedImage = image.endsWith(".png") ? image : `${image}.png`;
+
   const subject =
     state.subjects[subjectId] ?? {
       promptOutputs: {},
@@ -44,20 +47,20 @@ export function reducer(state: AppState, event: WatcherEvent): AppState {
 
   const bucket = bucketForStage(stage);
 
-  const prev = (subject[bucket] as any)[image] as ImageState | undefined;
+  const prev = (subject[bucket] as any)[normalizedImage] as ImageState | undefined;
   const nextPath = path ?? prev?.path;
 
   const nextSubject: SubjectState = {
     ...subject,
     [bucket]: {
       ...subject[bucket],
-      [image]: { status, path: nextPath },
+      [normalizedImage]: { status, path: nextPath },
     },
   };
 
   // Convenience: if we get A20/A70 through COMFY_OUTPUT, also surface it under anchors.
-  if (bucket === "comfyOutputs" && (image === "A20.png" || image === "A70.png" || image === "A20" || image === "A70")) {
-    const key = image.endsWith(".png") ? image : `${image}.png`;
+  if (bucket === "comfyOutputs" && (normalizedImage === "A20.png" || normalizedImage === "A70.png")) {
+    const key = normalizedImage;
     const prevA = nextSubject.anchors[key];
     nextSubject.anchors = {
       ...nextSubject.anchors,

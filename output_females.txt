@@ -1,0 +1,171 @@
+Columns: ['SubjectID', 'Sex', 'Ethnicity_Group', 'Folder_Name', 'Base_Path', 'Fitzpatrick_Tone', 'Notes', 'Base_Generator', 'Default_Workflow', 'Anchor_Ages', 'Image_Set_Status', 'FacialFeatures', 'AnchorPrompt_A20', 'AnchorPrompt_A70', 'Created_UTC', 'Created_By']
+FOUND Female S011 at row 12:
+  SubjectID: S011
+  Sex: Female
+  Ethnicity_Group: Black West African
+  Folder_Name: Black_West_African_Female
+  Base_Path: Aging/Female/Black_West_African_Female/subject011
+  Fitzpatrick_Tone: VI
+  Notes: High cheekbones, fuller lips
+  Base_Generator: Gemini Flash 2.5 (NanoBanana Pro)
+  Default_Workflow: A360_Aging_Progression_v1
+  Anchor_Ages: 20,70
+  Image_Set_Status: Anchors complete
+  FacialFeatures: None
+  AnchorPrompt_A20: None
+  AnchorPrompt_A70: None
+  Created_UTC: None
+  Created_By: None
+FOUND Female S012 at row 13:
+  SubjectID: S012
+  Sex: Female
+  Ethnicity_Group: Caucasian (Northern European)
+  Folder_Name: Caucasian_Northern_Euro
+  Base_Path: Aging/Female/Caucasian_Northern_Euro/subject012
+  Fitzpatrick_Tone: II
+  Notes: Fine features, narrow nose
+  Base_Generator: Gemini Flash 2.5 (NanoBanana Pro)
+  Default_Workflow: A360_Aging_Progression_v1
+  Anchor_Ages: 20,70
+  Image_Set_Status: Anchors complete
+  FacialFeatures: None
+  AnchorPrompt_A20: None
+  AnchorPrompt_A70: None
+  Created_UTC: None
+  Created_By: None
+FOUND Female S013 at row 14:
+  SubjectID: S013
+  Sex: Female
+  Ethnicity_Group: East African
+  Folder_Name: East_African_Female
+  Base_Path: Aging/Female/East_African_Female/subject013
+  Fitzpatrick_Tone: V
+  Notes: Narrow face, small features
+  Base_Generator: Gemini Flash 2.5 (NanoBanana Pro)
+  Default_Workflow: A360_Aging_Progression_v1
+  Anchor_Ages: 20,70
+  Image_Set_Status: Anchors complete
+  FacialFeatures: None
+  AnchorPrompt_A20: None
+  AnchorPrompt_A70: None
+  Created_UTC: None
+  Created_By: None
+FOUND Female S014 at row 15:
+  SubjectID: S014
+  Sex: Female
+  Ethnicity_Group: East Asian
+  Folder_Name: East_Asian_Female
+  Base_Path: Aging/Female/East_Asian_Female//subject014
+  Fitzpatrick_Tone: II–III
+  Notes: High cheekbones, straight hairline
+  Base_Generator: Gemini Flash 2.5 (NanoBanana Pro)
+  Default_Workflow: A360_Aging_Progression_v1
+  Anchor_Ages: 20,70
+  Image_Set_Status: Anchors complete
+  FacialFeatures: None
+  AnchorPrompt_A20: None
+  AnchorPrompt_A70: None
+  Created_UTC: None
+  Created_By: None
+FOUND Female S015 at row 16:
+  SubjectID: S015
+  Sex: Female
+  Ethnicity_Group: Hispanic / Latino
+  Folder_Name: Hispanic_Latino_Female
+  Base_Path: Aging/Female/Hispanic_Latino_Female/subject015
+  Fitzpatrick_Tone: IV
+  Notes: Medium tone, round chin
+  Base_Generator: Gemini Flash 2.5 (NanoBanana Pro)
+  Default_Workflow: A360_Aging_Progression_v1
+  Anchor_Ages: 20,70
+  Image_Set_Status: Anchors complete
+  FacialFeatures: None
+  AnchorPrompt_A20: None
+  AnchorPrompt_A70: None
+  Created_UTC: None
+  Created_By: None
+FOUND Female S016 at row 17:
+  SubjectID: S016
+  Sex: Female
+  Ethnicity_Group: Indigenous American
+  Folder_Name: Indigenous_American_Female
+  Base_Path: Aging/Female/Indigenous_American_Female/subject016
+  Fitzpatrick_Tone: IV
+  Notes: High cheekbones, straight hair
+  Base_Generator: Gemini Flash 2.5 (NanoBanana Pro)
+  Default_Workflow: A360_Aging_Progression_v1
+  Anchor_Ages: 20,70
+  Image_Set_Status: Anchors complete
+  FacialFeatures: None
+  AnchorPrompt_A20: None
+  AnchorPrompt_A70: None
+  Created_UTC: None
+  Created_By: None
+FOUND Female S017 at row 18:
+  SubjectID: S017
+  Sex: Female
+  Ethnicity_Group: Mediterranean
+  Folder_Name: Mediterranean_Female
+  Base_Path: Aging/Female/Mediterranean_Female/subject017
+  Fitzpatrick_Tone: III
+  Notes: Olive tone, arched brows
+  Base_Generator: Gemini Flash 2.5 (NanoBanana Pro)
+  Default_Workflow: A360_Aging_Progression_v1
+  Anchor_Ages: 20,70
+  Image_Set_Status: Anchors complete
+  FacialFeatures: None
+  AnchorPrompt_A20: None
+  AnchorPrompt_A70: None
+  Created_UTC: None
+  Created_By: None
+FOUND Female S018 at row 19:
+  SubjectID: S018
+  Sex: Female
+  Ethnicity_Group: Middle Eastern
+  Folder_Name: Middle_Eastern_Female
+  Base_Path: Aging/Female/Middle_Eastern_Female/subject018
+  Fitzpatrick_Tone: IV
+  Notes: Prominent cheekbones, defined brows
+  Base_Generator: Gemini Flash 2.5 (NanoBanana Pro)
+  Default_Workflow: A360_Aging_Progression_v1
+  Anchor_Ages: 20,70
+  Image_Set_Status: Anchors complete
+  FacialFeatures: None
+  AnchorPrompt_A20: None
+  AnchorPrompt_A70: None
+  Created_UTC: None
+  Created_By: None
+FOUND Female S019 at row 20:
+  SubjectID: S019
+  Sex: Female
+  Ethnicity_Group: Mixed Race
+  Folder_Name: Mixed_Race_Female
+  Base_Path: Aging/Female/Mixed_Race_Female/subject019
+  Fitzpatrick_Tone: III–IV
+  Notes: Light-medium tone, curly hair
+  Base_Generator: Gemini Flash 2.5 (NanoBanana Pro)
+  Default_Workflow: A360_Aging_Progression_v1
+  Anchor_Ages: 20,70
+  Image_Set_Status: Anchors complete
+  FacialFeatures: None
+  AnchorPrompt_A20: None
+  AnchorPrompt_A70: None
+  Created_UTC: None
+  Created_By: None
+FOUND Female S020 at row 21:
+  SubjectID: S020
+  Sex: Female
+  Ethnicity_Group: South Asian
+  Folder_Name: South_Asian_Female
+  Base_Path: Aging/Female/South_Asian_Female/subject020
+  Fitzpatrick_Tone: IV
+  Notes: Broad nose bridge, almond eyes
+  Base_Generator: Gemini Flash 2.5 (NanoBanana Pro)
+  Default_Workflow: A360_Aging_Progression_v1
+  Anchor_Ages: 20,70
+  Image_Set_Status: Anchors complete
+  FacialFeatures: None
+  AnchorPrompt_A20: None
+  AnchorPrompt_A70: None
+  Created_UTC: None
+  Created_By: None
