@@ -1,0 +1,15 @@
+{
+    "projectRoot": "REPLACE_WITH_DATASET_ROOT_PATH (e.g. D:/A360/A360_AgingDataset)",
+    "subjectRoot": "REPLACE_WITH_SUBJECTS_DIR_PATH (e.g. D:/A360/A360_AgingDataset/CUI Workflows/Aging)",
+    "scriptsRoot": "REPLACE_WITH_APP_ROOT_PATH (e.g. D:/A360_App)",
+    "excelPath": "REPLACE_WITH_EXCEL_PATH (e.g. D:/A360/A360_AgingDataset/A360_AgingDataset_Master.xlsx)",
+    "comfyOutputDir": "REPLACE_WITH_COMFY_OUTPUT_PATH (e.g. C:/ComfyUI/output)",
+    "timelineCode": "A",
+    "timelineFolderName": "TimelineA",
+    "baseGenerator": "Gemini Flash 2.5 (NanoBanana Pro)",
+    "defaultWorkflow": "A360_Aging_Progression_v1",
+    "wsHost": "127.0.0.1",
+    "wsPort": 8765,
+    "pythonPath": "REPLACE_WITH_PYTHON_EXE_PATH",
+    "pythonTimeoutMs": 120000
+}

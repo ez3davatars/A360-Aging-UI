@@ -1,4 +1,4 @@
-# A360 Tonight Setup (Manual ComfyUI)
+# A360 Aging UI Setup (Manual ComfyUI)
 
 ## 1) Configure paths
 Edit `a360.config.json`:
@@ -18,7 +18,7 @@ pip install -r python/requirements.txt
 
 ## 3) Start the system
 Option A (recommended):
-- Run `start_a360_tonight.bat`
+- Run `start_a360_aging_ui.bat`
 
 Option B (manual):
 

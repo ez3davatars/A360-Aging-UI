@@ -26,17 +26,17 @@ pip install -r python/requirements.txt
 ```
 
 ### 2. Configure Your Environment
-Edit `a360.config.json` in the root folder with your local paths:
+Rename `a360.config.template.json` to `a360.config.json` and edit it with your local paths:
 
 ```json
 {
   "projectRoot": "D:/A360/A360_AgingDataset",
-  "excelPath": "D:/A360/A360_AgingDataset/A360_AgingDataset_Mirror.xlsx",
+  "excelPath": "D:/A360/A360_AgingDataset/A360_AgingDataset_Master_v3.xlsx",
   "comfyOutputDir": "C:/ComfyUI/output"
 }
 ```
 > [!IMPORTANT]
-> Always close the Excel file before starting the application to prevent sync errors.
+> Ensure the `excelPath` points to the **Master Registry** file. Always close the Excel file before starting the application to prevent sync errors.
 
 ---
 

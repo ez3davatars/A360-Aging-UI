@@ -29,8 +29,8 @@ timeout /t 3 /nobreak >nul
 echo Starting Python watcher...
 start "A360 Watcher" cmd /k "python python\a360_watcher.py"
 
-echo Starting Electron UI...
-start "A360 UI" cmd /k "npm run start"
+echo Starting Electron UI (Production Build)...
+start "A360 UI" cmd /k "npm run electron"
 
 echo.
 echo If the watcher fails due to missing Python deps:

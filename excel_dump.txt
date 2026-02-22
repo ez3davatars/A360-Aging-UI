@@ -1,3 +1,0 @@
-('SubjectID', 'Base_Path', 'Sex', 'Ethnicity_Group', 'Fitzpatrick_Tone', 'Notes', 'Image_Set_Status', 'Last_Updated_Utc')
-('S001', 'Male/Black Afro-Caribbean/subject001', 'Male', 'Black Afro-Caribbean', 'VI', 'skin=VI | hair=tight curls | face_shape=Square face | facial_features=a rich, melanin-dense skin tone, full lips, and broad noses, high cheekbones', 'TimelineA complete', '2026-02-20T20:23:10+00:00')
-('S002', 'Male/Caucasian_Northern_Euro/subject002', 'Male', 'Caucasian_Northern_Euro', 'II', 'skin=II', 'TimelineA complete', '2026-02-20T20:33:57+00:00')

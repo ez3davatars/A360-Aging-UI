@@ -1,6 +1,12 @@
 node_modules/
 dist/
+release/
 .env
+*.log
+*.txt
+*.bin
+*.dll
+*.pak
 
 # Large files
 index.zip

@@ -48,7 +48,11 @@ function createWindow() {
     },
   });
 
-  win.loadURL("http://localhost:5173");
+  if (app.isPackaged || !process.env.VITE_DEV_SERVER_URL) {
+    win.loadFile(path.join(__dirname, "../dist/index.html"));
+  } else {
+    win.loadURL(process.env.VITE_DEV_SERVER_URL || "http://localhost:5173");
+  }
 
   // Debug aid — keep for now
   // win.webContents.openDevTools();

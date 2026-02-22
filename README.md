@@ -10,7 +10,7 @@ document provides your high-level architectural overview.
 Core Strengths of the Pipeline
 • Anchor-driven identity locking (A20/A70)
 • ComfyUI + IPAdapter FaceID for identity preservation
-• Excel-driven metadata schema for phenotype expansion
+• Excel-driven metadata schema (Master Registry)
 • Automated ingestion & naming workflow
 • Modular prompt generation via Prompts_Auto
 • Extensible subject folder architecture
