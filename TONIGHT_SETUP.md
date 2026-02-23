@@ -33,10 +33,12 @@ npm run start
 ```
 
 ## 4) Workflow (what you actually do)
-1. In the UI: **Create Subject** (this appends to `Subjects` and creates `TimelineA`).
+1. In the UI: **Create Subject** (select phenotype; the system automatically generates an ID like `S004`).
 2. Use the UI’s **Anchor prompts** to generate A20/A70 in Gemini.
 3. In the UI: upload A20 and A70 and click **Save Anchors to TimelineA**.
-4. In ComfyUI: run your aging workflow using those anchors as inputs.
+4. In ComfyUI:
+   - **Crucial**: Enter the Subject ID (e.g., `S004`) into your **String node**.
+   - Run your aging workflow using those anchors as inputs.
 5. Make sure Comfy output filenames include subject + age, e.g.
    - `S004_A45_00001_.png` (preferred)
    - `subject004_age045_00001_.png` (supported)
